@@ -1,4 +1,3 @@
-from aiogram import Router, F
-from aiogram.types import CommandStart, Message
+from aiogram import Router
 
 admin = Router()
