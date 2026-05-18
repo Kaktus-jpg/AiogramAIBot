@@ -6,6 +6,7 @@ dependencies = [
     "aiogram>=3.28.2",
     "asyncpg>=0.31.0",
     "black>=26.5.0",
+    "httpx>=0.28.1",
     "mypy>=1.11",
     "openai>=2.37.0",
     "python-dotenv>=1.2.2",
