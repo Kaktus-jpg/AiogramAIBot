@@ -1,4 +1,3 @@
 from app.admin import admin
 from app.user import user
-
-__all__ = [admin, user]
+from app.database import async_main, async_session, User
