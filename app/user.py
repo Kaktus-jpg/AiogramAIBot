@@ -17,6 +17,17 @@ user = Router()
 @user.message(CommandStart())
 async def cmd_start(message: Message):
     await message.answer("Добро пожаловать!", reply_markup=kb.main)
+    
+
+@user.message(Command('test'))
+async def cmd_test(message: Message):
+    full_text = 'Прлпдвлпдададмбалатсдчостчлслсьсдаьааоласлтсвлдвосьслсладсювдаоашалсталссл'
+    await message.bot.send_message_draft(
+                    chat_id=message.chat.id,
+                    draft_id=message.message_id,
+                    text=full_text,
+                    message_thread_id=message.message_thread_id,
+                )
 
 
 @user.message(F.text == "Чат")
