@@ -1,5 +1,6 @@
 from openai import AsyncOpenAI
 from config import AI_TOKEN
+#import asyncio
 
 client = AsyncOpenAI(
     api_key=AI_TOKEN,
@@ -16,7 +17,7 @@ async def gpt_text(req, model="deepseek/deepseek-v4-flash"):
         model=model,
         messages=[
             {
-                "role": "system",
+                "role": "developer",
                 "content": "use markdown parse mode for telegram api and write as little as possible, at the end ask how to help, don't use # as headers. write up to 1000 characters",
             },
             {
@@ -28,7 +29,9 @@ async def gpt_text(req, model="deepseek/deepseek-v4-flash"):
         verbosity="low",
         temperature=0,
     )
-    return completion.choices[0].message.content
+    return {'response': completion.choices[0].message.content, 'usage': completion.usage.total_tokens}
+
+#print(asyncio.run(gpt_text('можно ли создать машину времени? объясни как можно подробнее')))
 
     # to_send = str()
     # async for chunk in completion:
