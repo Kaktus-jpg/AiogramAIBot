@@ -1,5 +1,5 @@
 import asyncio
-from asyncio.log import logger
+import logging
 from decimal import Decimal
 
 from aiogram import F, Router
@@ -16,6 +16,9 @@ from app.generators import gpt_text
 from app.states import Chat
 
 user = Router()
+
+# Создаём логгер, используя имя модуля или __name__
+logger = logging.getLogger(__name__)
 
 
 @user.message(F.text == "Отмена")
@@ -64,7 +67,9 @@ async def chat_response(message: Message, state: FSMContext):
                 message_thread_id=message.message_thread_id,
             )
             ###
-            print(f"Запрос от {message.from_user.id}: {message.text}")
+            logger.info(
+                f"Запрос от {message.from_user.username} (ID: {message.from_user.id}): {message.text}"
+            )
             response = await gpt_text(message.text)
             await calculate(
                 message.from_user.id, response["usage"], "deepseek/deepseek-v4-flash"

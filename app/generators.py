@@ -1,6 +1,6 @@
 from openai import AsyncOpenAI
 from config import AI_TOKEN
-#import asyncio
+# import asyncio
 
 client = AsyncOpenAI(
     api_key=AI_TOKEN,
@@ -29,21 +29,26 @@ async def gpt_text(req, model="deepseek/deepseek-v4-flash"):
         verbosity="low",
         temperature=0,
     )
-    return {'response': completion.choices[0].message.content, 'usage': completion.usage.total_tokens}
+    # return completion.choices[0].message.content
+    return {
+        "response": completion.choices[0].message.content,
+        "usage": completion.usage.total_tokens,
+    }
 
-#print(asyncio.run(gpt_text('можно ли создать машину времени? объясни как можно подробнее')))
 
-    # to_send = str()
-    # async for chunk in completion:
-    #     content = chunk.choices[0].delta.content
-    #     print(content)
-    #     if content:
-    #         to_send += content
-    #         print(len(to_send))
-    #         if 100 < len(to_send):
-    #             print("\n", content, "\n", to_send)
-    #             yield to_send
-    #             to_send = str()
-    # if to_send:
-    #     yield to_send
-    #     to_send = str()
+# print(asyncio.run(gpt_text('можно ли создать машину времени? объясни как можно подробнее')))
+
+# to_send = str()
+# async for chunk in completion:
+#     content = chunk.choices[0].delta.content
+#     print(content)
+#     if content:
+#         to_send += content
+#         print(len(to_send))
+#         if 100 < len(to_send):
+#             print("\n", content, "\n", to_send)
+#             yield to_send
+#             to_send = str()
+# if to_send:
+#     yield to_send
+#     to_send = str()
