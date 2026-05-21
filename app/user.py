@@ -12,8 +12,8 @@ from aiogram.utils.chat_action import ChatActionSender
 
 import app.keyboards as kb
 from app.database import calculate, get_user, set_user
-from app.generators import gpt_text
-from app.states import Chat
+from app.generators import gpt_text, gpt_image
+from app.states import Chat, Image
 
 user = Router()
 
@@ -120,3 +120,60 @@ async def wait_wait(message: Message):
         action=ChatAction.TYPING,
     )
     await message.answer("Ваше сообщение генерируется, подождите")
+
+
+@user.message(F.text == "Генерация картинок")
+async def chatting(message: Message, state: FSMContext):
+    user = await get_user(message.from_user.id)
+    if Decimal(user.balance) > 0:
+        await state.set_state(Image.text)
+        await message.bot.send_chat_action(
+            chat_id=message.from_user.id,
+            message_thread_id=message.message_thread_id,
+            action=ChatAction.TYPING,
+        )
+        await message.answer("Введите ваш запрос", reply_markup=kb.cancel)
+    else:
+        await message.answer("Недостаточно средств на балансе")
+
+
+@user.message(Image.text)
+async def chat_response(message: Message, state: FSMContext):
+    user = await get_user(message.from_user.id)
+    if Decimal(user.balance) > 0:
+        logger.info(
+            f"Запрос от {message.from_user.username} (ID: {message.from_user.id}): {message.text}"
+        )
+        await state.set_state(Image.wait)
+        async with ChatActionSender(
+            bot=message.bot,
+            chat_id=message.chat.id,
+            message_thread_id=message.message_thread_id,
+            action=ChatAction.TYPING,
+        ):
+            await message.bot.send_message_draft(
+                chat_id=message.chat.id,
+                draft_id=message.message_id,
+                text="Думаю",
+                message_thread_id=message.message_thread_id,
+            )
+        async with ChatActionSender(
+            bot=message.bot,
+            chat_id=message.chat.id,
+            message_thread_id=message.message_thread_id,
+            action=ChatAction.UPLOAD_PHOTO,
+        ):
+            response = await gpt_image(
+                message.text, "black-forest-labs/flux.2-klein-4b"
+            )
+            await calculate(
+                message.from_user.id,
+                response["usage"],
+                "black-forest-labs/flux.2-klein-4b",
+                user,
+            )
+
+            await message.answer_photo(photo=response["image"])
+            await state.set_state(Image.text)
+    else:
+        await message.answer("Недостаточно средств на балансе")
