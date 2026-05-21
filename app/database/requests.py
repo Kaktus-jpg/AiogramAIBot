@@ -17,9 +17,8 @@ async def get_user(tg_id):
         return await session.scalar(select(User).where(User.tg_id == tg_id))
 
 
-async def calculate(tg_id, tokens_sum, model_name):
+async def calculate(tg_id, tokens_sum, model_name, user):
     async with async_session() as session:
-        user = await session.scalar(select(User).where(User.tg_id == tg_id))
         model = await session.scalar(select(AiModel).where(AiModel.name == model_name))
         new_balance = Decimal(
             Decimal(user.balance) - Decimal(Decimal(model.price) * Decimal(tokens_sum))

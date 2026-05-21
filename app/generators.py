@@ -36,6 +36,11 @@ async def gpt_text(req, model="deepseek/deepseek-v4-flash"):
     }
 
 
+async def gpt_image(req, model):
+    pass
+
+
+
 # print(asyncio.run(gpt_text('можно ли создать машину времени? объясни как можно подробнее')))
 
 # to_send = str()

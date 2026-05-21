@@ -72,7 +72,7 @@ async def chat_response(message: Message, state: FSMContext):
             )
             response = await gpt_text(message.text)
             await calculate(
-                message.from_user.id, response["usage"], "deepseek/deepseek-v4-flash"
+                message.from_user.id, response["usage"], "deepseek/deepseek-v4-flash", user
             )
             chunks = [
                 response["response"][i : i + 90]
@@ -99,7 +99,7 @@ async def chat_response(message: Message, state: FSMContext):
 
                 await message.answer(full_text, parse_mode="markdown")
             finally:
-                await state.set_state(Chat.wait)
+                await state.set_state(Chat.text)
     else:
         await message.answer("Недостаточно средств на балансе")
     ###
