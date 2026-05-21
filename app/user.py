@@ -18,6 +18,7 @@ from app.states import Chat
 user = Router()
 
 # Создаём логгер, используя имя модуля или __name__
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -72,7 +73,10 @@ async def chat_response(message: Message, state: FSMContext):
             )
             response = await gpt_text(message.text)
             await calculate(
-                message.from_user.id, response["usage"], "deepseek/deepseek-v4-flash", user
+                message.from_user.id,
+                response["usage"],
+                "deepseek/deepseek-v4-flash",
+                user,
             )
             chunks = [
                 response["response"][i : i + 90]
