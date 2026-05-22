@@ -1,6 +1,9 @@
+import base64
+import re
+
+from aiogram.types import BufferedInputFile
 from openai import AsyncOpenAI
 from config import AI_TOKEN
-# import asyncio
 
 client = AsyncOpenAI(
     api_key=AI_TOKEN,
@@ -36,10 +39,28 @@ async def gpt_text(req, model="deepseek/deepseek-v4-flash"):
     }
 
 
-async def gpt_image(req, model):
-    pass
+async def gpt_image(req, model="black-forest-labs/flux.2-klein-4b"):
+    response = await client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": req}],
+        modalities=["image"],
+        max_tokens=500,
+    )
+    raw_image_url = str(response.choices[0].message.images[0]["image_url"]["url"])
+
+    byte_image_url = base64.b64decode(
+        raw_image_url.removeprefix(
+            re.findall(r"data:image/\w{0,5};base64,", raw_image_url)[0]
+        )
+    )
+
+    return {
+        "image": BufferedInputFile(byte_image_url, filename="image.jpeg"),
+        "usage": response.usage.total_tokens,
+    }
 
 
+# content = asyncio.run(gpt_image("Generate an image of a sunset over mountains"))
 
 # print(asyncio.run(gpt_text('можно ли создать машину времени? объясни как можно подробнее')))
 
