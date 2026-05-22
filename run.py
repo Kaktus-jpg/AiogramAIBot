@@ -1,9 +1,9 @@
 import asyncio
+
 from aiogram import Bot, Dispatcher
 
+from app import admin, async_main, images, texts, user
 from config import TOKEN
-
-from app import admin, user, async_main
 
 
 async def main():
@@ -12,6 +12,7 @@ async def main():
     dp.startup.register(on_startup)
     dp.shutdown.register(shutdown)
     dp.include_routers(user, admin)
+    user.include_routers(texts, images)
     await dp.start_polling(bot)
 
 

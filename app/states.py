@@ -9,3 +9,7 @@ class Chat(StatesGroup):
 class Image(StatesGroup):
     text = State()
     wait = State()
+
+
+class NewsLetter(StatesGroup):
+    message = State()

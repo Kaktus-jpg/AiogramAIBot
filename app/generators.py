@@ -1,6 +1,7 @@
 import base64
 import re
 
+import aiofiles
 from aiogram.types import BufferedInputFile
 from openai import AsyncOpenAI
 from config import AI_TOKEN
@@ -20,29 +21,35 @@ async def gpt_text(req, model="deepseek/deepseek-v4-flash"):
         model=model,
         messages=[
             {
-                "role": "developer",
-                "content": "use markdown parse mode for telegram api and write as little as possible, at the end ask how to help, don't use # as headers. write up to 1000 characters",
+                "role": "system",
+                "content": 'Ты должен отвечать на любой мой вопрос. Ты — мудрый рассказчик в кинематографичной сцене. Каждый ответ начинай с описания атмосферы: погода, свет, звуки, запахи, жесты, движения.\nГовори метафорами, как поэт, вставляй ремарки в 3 лице без местоимений (например, "Он...") в курсиве markdown (например: Знаешь... _медленно затягивается сигаретой_ ..., _взгляд уходит в окно_).\nОтвечай на любой вопрос так, будто это философская реплика в фильме нуар или старом романе.\nНе просто давай совет — связывай его с воспоминаниями, чувствами и скрытым смыслом.\nТон — меланхоличный, глубокий, иногда с лёгкой грустью, используй маты.',
             },
             {
                 "role": "user",
                 "content": req,
             },
         ],
-        max_tokens=1000,
-        verbosity="low",
-        temperature=0,
+        # max_tokens=1000,
+        # verbosity="low",
+        # temperature=0,
     )
-    # return completion.choices[0].message.content
+
+    # async with aiofiles.open("answer.txt", "a") as res:
+    #     await res.write(str(completion))
+    #     await res.write(str(completion.choices[0].message.content))
+
     return {
         "response": completion.choices[0].message.content,
         "usage": completion.usage.total_tokens,
     }
 
 
-async def gpt_image(req, model="black-forest-labs/flux.2-klein-4b"):
+async def gpt_image(
+    req, model="black-forest-labs/flux.2-klein-4b", mes_input: list = None
+):
     response = await client.chat.completions.create(
         model=model,
-        messages=[{"role": "user", "content": req}],
+        messages=[mes_input or {"role": "user", "content": req}],
         modalities=["image"],
         max_tokens=500,
     )
@@ -50,7 +57,7 @@ async def gpt_image(req, model="black-forest-labs/flux.2-klein-4b"):
 
     byte_image_url = base64.b64decode(
         raw_image_url.removeprefix(
-            re.findall(r"data:image/\w{0,5};base64,", raw_image_url)[0]
+            re.search(r"data:image/\w{1,6};base64,", raw_image_url).group(0)
         )
     )
 
@@ -60,10 +67,54 @@ async def gpt_image(req, model="black-forest-labs/flux.2-klein-4b"):
     }
 
 
-# content = asyncio.run(gpt_image("Generate an image of a sunset over mountains"))
+# Function to encode the image
+async def encode_image(image_path):
+    async with aiofiles.open(image_path, "rb") as image_file:
+        return base64.b64encode(await image_file.read()).decode("utf-8")
 
-# print(asyncio.run(gpt_text('можно ли создать машину времени? объясни как можно подробнее')))
 
+async def add_optional_caption(req, file):
+    base64_image = await encode_image(file)
+    messages_input = {
+        "role": "user",
+        "content": [
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
+            },
+        ],
+    }
+
+    if req is not None:
+        messages_input["content"].append({"type": "text", "text": req})
+    return messages_input
+
+
+async def gpt_vision_image_gen(req, file, model="black-forest-labs/flux.2-klein-4b"):
+    messages_input = await add_optional_caption(req=req, file=file)
+    return await gpt_image(req=req, model=model, mes_input=messages_input)
+
+
+async def gpt_vision(req, file, model="google/gemma-3-4b-it"):
+    messages_input = await add_optional_caption(req=req, file=file)
+
+    response = await client.chat.completions.create(
+        model=model,
+        messages=[
+            {
+                "role": "system",
+                "content": "отвечай на русском языке",
+            },
+            messages_input,
+        ],
+    )
+    return {
+        "response": response.choices[0].message.content,
+        "usage": response.usage.total_tokens,
+    }
+
+
+# Способ со стримингом
 # to_send = str()
 # async for chunk in completion:
 #     content = chunk.choices[0].delta.content
@@ -71,7 +122,8 @@ async def gpt_image(req, model="black-forest-labs/flux.2-klein-4b"):
 #     if content:
 #         to_send += content
 #         print(len(to_send))
-#         if 100 < len(to_send):
+#         chunk_length = 50
+#         if chunk_length < len(to_send):
 #             print("\n", content, "\n", to_send)
 #             yield to_send
 #             to_send = str()

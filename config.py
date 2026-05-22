@@ -7,3 +7,4 @@ if not load_dotenv():
 
 TOKEN = os.getenv("TOKEN")
 AI_TOKEN = os.getenv("AI_TOKEN")
+TG_ADMINS_IDS = tuple(os.getenv("TG_ADMINS_IDS").split(","))

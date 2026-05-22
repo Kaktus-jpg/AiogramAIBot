@@ -1,29 +1,51 @@
-from app.database import async_session, User, AiModel
-from sqlalchemy import select, update
+import logging
 from decimal import Decimal
+from typing import Callable
+
+from sqlalchemy import select, update
+
+from app.database import AiModel, User, async_session
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
-async def set_user(tg_id):
-    async with async_session() as session:
-        user = await session.scalar(select(User).where(User.tg_id == tg_id))
+def connection(func: Callable) -> Callable:
+    async def inner(*args, **kwargs):
+        async with async_session() as session:
+            return await func(session, *args, **kwargs)
 
-        if not user:
-            session.add(User(tg_id=tg_id, balance="100"))
-            await session.commit()
-
-
-async def get_user(tg_id):
-    async with async_session() as session:
-        return await session.scalar(select(User).where(User.tg_id == tg_id))
+    return inner
 
 
-async def calculate(tg_id, tokens_sum, model_name, user):
-    async with async_session() as session:
-        model = await session.scalar(select(AiModel).where(AiModel.name == model_name))
-        new_balance = Decimal(
-            Decimal(user.balance) - Decimal(Decimal(model.price) * Decimal(tokens_sum))
-        )
-        await session.execute(
-            update(User).where(User.id == user.id).values(balance=str(new_balance))
-        )
+@connection
+async def set_user(session, tg_id):
+    user = await session.scalar(select(User).where(User.tg_id == tg_id))
+
+    if not user:
+        session.add(User(tg_id=tg_id, balance="100"))
         await session.commit()
+
+
+@connection
+async def get_user(session, tg_id):
+    return await session.scalar(select(User).where(User.tg_id == tg_id))
+
+
+@connection
+async def get_users(session):
+    return await session.scalars(select(User))
+
+
+@connection
+async def calculate(session, tokens_sum, model_name, user):
+    model = await session.scalar(select(AiModel).where(AiModel.name == model_name))
+    spends = Decimal(Decimal(model.price) * Decimal(tokens_sum))
+    logger.info(f"Было затрачено: {spends}")
+
+    new_balance = Decimal(Decimal(user.balance) - spends)
+
+    await session.execute(
+        update(User).where(User.id == user.id).values(balance=str(new_balance))
+    )
+    await session.commit()

@@ -9,6 +9,7 @@ main = ReplyKeyboardMarkup(
         [image_main_button],
     ],
     resize_keyboard=True,
+    one_time_keyboard=True,
     input_field_placeholder="Выберите пункт меню.",
 )
 
