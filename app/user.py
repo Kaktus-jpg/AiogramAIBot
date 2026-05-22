@@ -44,7 +44,7 @@ async def chatting(message: Message, state: FSMContext):
             message_thread_id=message.message_thread_id,
             action=ChatAction.TYPING,
         )
-        await message.answer("Введите ваш запрос", reply_markup=kb.cancel)
+        await message.answer("Введите ваш запрос для генкерации текста", reply_markup=kb.cancel)
     else:
         await message.answer("Недостаточно средств на балансе")
 
