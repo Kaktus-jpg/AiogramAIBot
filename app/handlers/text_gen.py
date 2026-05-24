@@ -15,7 +15,9 @@ from app.generators import gpt_text, gpt_vision
 from app.handlers.utils import image_download, message_splitting, thinking_action
 from app.states import Chat
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 texts = Router()

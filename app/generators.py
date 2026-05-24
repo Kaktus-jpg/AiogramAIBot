@@ -4,6 +4,7 @@ import re
 import aiofiles
 from aiogram.types import BufferedInputFile
 from openai import AsyncOpenAI
+
 from config import AI_TOKEN
 
 client = AsyncOpenAI(

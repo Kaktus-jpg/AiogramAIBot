@@ -13,7 +13,9 @@ from app.states import Chat, Image
 user = Router()
 
 # Создаём логгер, используя имя модуля или __name__
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 
