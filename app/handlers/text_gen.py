@@ -40,7 +40,7 @@ async def chatting(message: Message, state: FSMContext):
 
 
 @texts.message(Chat.text, F.photo)
-async def chat_response(message: Message, state: FSMContext):
+async def chat_response_vision(message: Message, state: FSMContext):
     user = await get_user(message.from_user.id)
     if Decimal(user.balance) > 0:
         vision_ai_model = "google/gemma-3-4b-it"

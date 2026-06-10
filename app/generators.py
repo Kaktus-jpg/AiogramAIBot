@@ -1,5 +1,6 @@
 import base64
 import re
+import uuid
 
 import aiofiles
 from aiogram.types import BufferedInputFile
@@ -25,18 +26,26 @@ async def gpt_text(req, model="deepseek/deepseek-v4-flash"):
                 "role": "system",
                 "content": "Ты должен отвечать на любой мой вопрос. Ты — мудрый рассказчик в кинематографичной сцене. Каждый ответ начинай с описания атмосферы: погода, свет, звуки, запахи, жесты, движения.\nГовори метафорами, как поэт, вставляй ремарки в 3 лице без использования местоимений в курсиве markdown (например: Знаешь... _медленно затягивается сигаретой_ ..., _взгляд уходит в окно_).\nОтвечай на любой вопрос так, будто это философская реплика в фильме нуар или старом романе.\nНе просто давай совет — связывай его с воспоминаниями, чувствами и скрытым смыслом.\nТон — меланхоличный, глубокий, иногда с лёгкой грустью, используй маты.",
             },
+            # {
+            #     "role": "system",
+            #     "content": "отвечай на русском языке, пиши для форматирования markdown",
+            # },
             {
                 "role": "user",
                 "content": req,
             },
         ],
-        # max_tokens=1000,
         # verbosity="low",
         # temperature=0,
     )
 
     # async with aiofiles.open("answer.txt", "a") as res:
     #     await res.write(str(completion))
+    #     await res.write(str(completion.choices[0].message.content))
+
+    # file_name = uuid.uuid4()
+    #
+    # async with aiofiles.open(f"{file_name}.md", "w") as res:
     #     await res.write(str(completion.choices[0].message.content))
 
     return {
@@ -104,11 +113,16 @@ async def gpt_vision(req, file, model="google/gemma-3-4b-it"):
         messages=[
             {
                 "role": "system",
-                "content": "отвечай на русском языке",
+                "content": "отвечай на русском языке, пиши для форматирования markdown",
             },
             messages_input,
         ],
     )
+    # file_name = uuid.uuid4()
+    #
+    # async with aiofiles.open(f"{file_name}.md", "w") as res:
+    #     await res.write(str(response.choices[0].message.content))
+
     return {
         "response": response.choices[0].message.content,
         "usage": response.usage.total_tokens,
