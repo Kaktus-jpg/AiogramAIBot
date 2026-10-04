@@ -4,7 +4,7 @@ from decimal import Decimal
 from sqlalchemy import select, update
 
 from app.database import AiModel, User, async_session
-from app.handlers.get_loggers import get_logger
+from app.get_loggers import get_logger
 
 logger = get_logger(__name__)
 

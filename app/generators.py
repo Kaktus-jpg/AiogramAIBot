@@ -10,7 +10,7 @@ from openai import (
     AsyncOpenAI,
 )
 
-from app.handlers.get_loggers import get_logger
+from app.get_loggers import get_logger
 from app.texts import deep_prompt
 from config import AI_TOKEN
 

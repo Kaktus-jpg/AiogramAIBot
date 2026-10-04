@@ -3,7 +3,7 @@ import asyncio
 from aiogram import Bot, Dispatcher
 
 from app import admin, async_main, images, texts, user
-from app.handlers.get_loggers import get_logger
+from app.get_loggers import get_logger
 from config import TOKEN
 
 logger = get_logger(__name__)

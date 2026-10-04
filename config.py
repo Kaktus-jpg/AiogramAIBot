@@ -3,7 +3,7 @@ import sys
 
 from dotenv import load_dotenv
 
-from app.handlers.get_loggers import get_logger
+from app.get_loggers import get_logger
 
 logger = get_logger(__name__)
 

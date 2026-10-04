@@ -4,7 +4,7 @@ import uuid
 from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
 from aiogram.types import InputRichMessage, Message
 
-from app.handlers.get_loggers import get_logger
+from app.get_loggers import get_logger
 
 logger = get_logger(__name__)
 
