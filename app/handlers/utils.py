@@ -52,7 +52,6 @@ async def send_message_splitting(
             break  # Не отправляем остальные ошибочные промежуточные варианты
         except TelegramRetryAfter as exc:
             logger.warning("Лимит Telegram: %s сек.", exc.retry_after)
-            draft_failed = True
             await asyncio.sleep(exc.retry_after)
         except Exception as exc:
             logger.error(f"Ошибка draft: {exc}")
@@ -62,19 +61,42 @@ async def send_message_splitting(
     if draft_failed:
         # Используем весь исходный ответ, а не full_text:
         # цикл мог остановиться посередине сообщения.
-        for i in range(0, len(message_text), 4000):
-            await message.answer(
-                message_text[i : i + 4000],
-                parse_mode=None,
-            )
-        return
 
-    await message.answer_rich(
-        rich_message=InputRichMessage(
-            markdown=message_text,
-            skip_entity_detection=False,
+        full_text = ""
+
+        for chunk in chunks:
+            full_text += str(chunk)
+            try:
+                await message.bot.send_message_draft(
+                    chat_id=message.chat.id,
+                    draft_id=message.message_id,
+                    text=full_text,
+                    message_thread_id=message.message_thread_id,
+                    parse_mode="markdown",
+                )
+            except TelegramBadRequest as exc:
+                logger.warning(
+                    "Черновик отклонён на длине %s: %s",
+                    len(full_text),
+                    exc.message,
+                )
+            except TelegramRetryAfter as exc:
+                logger.warning("Лимит Telegram: %s сек.", exc.retry_after)
+                await asyncio.sleep(exc.retry_after)
+            except Exception as exc:
+                logger.error(f"Ошибка draft: {exc}")
+            else:
+                await asyncio.sleep(0.85)
+
+        await message.answer(text=message_text)
+
+    else:
+        await message.answer_rich(
+            rich_message=InputRichMessage(
+                markdown=message_text,
+                skip_entity_detection=False,
+            )
         )
-    )
 
 
 async def thinking_action(message: Message):
