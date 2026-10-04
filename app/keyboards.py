@@ -1,5 +1,4 @@
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-
+from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 
 chat_main_button = KeyboardButton(text="Чат")
 image_main_button = KeyboardButton(text="Генерация картинок")

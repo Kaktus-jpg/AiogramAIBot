@@ -1,2 +1,2 @@
-from app.database.models import async_main, async_session, User, AiType, AiModel
-from app.database.requests import set_user, get_user, get_users, calculate
+from app.database.models import AiModel, AiType, User, async_main, async_session
+from app.database.requests import calculate, get_user, get_users, set_user

@@ -1,15 +1,12 @@
-import logging
+from collections.abc import Callable
 from decimal import Decimal
-from typing import Callable
 
 from sqlalchemy import select, update
 
 from app.database import AiModel, User, async_session
+from app.handlers.get_loggers import get_logger
 
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-logger.addHandler(logging.StreamHandler())
+logger = get_logger(__name__)
 
 
 def connection(func: Callable) -> Callable:

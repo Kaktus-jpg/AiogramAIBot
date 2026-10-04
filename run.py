@@ -1,14 +1,12 @@
 import asyncio
-import logging
 
 from aiogram import Bot, Dispatcher
 
 from app import admin, async_main, images, texts, user
+from app.handlers.get_loggers import get_logger
 from config import TOKEN
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-logger.addHandler(logging.StreamHandler())
+logger = get_logger(__name__)
 
 
 async def main():
@@ -23,11 +21,11 @@ async def main():
 
 async def on_startup(dispatcher: Dispatcher):
     await async_main()
-    logging.debug("Starting bot...")
+    logger.debug("Starting bot...")
 
 
 async def shutdown(dispatcher: Dispatcher):
-    logging.debug("Stopping bot...")
+    logger.debug("Stopping bot...")
 
 
 if __name__ == "__main__":

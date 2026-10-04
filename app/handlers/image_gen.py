@@ -1,4 +1,3 @@
-import logging
 import os
 from decimal import Decimal
 
@@ -12,15 +11,14 @@ from aiogram.utils.chat_action import ChatActionSender
 import app.keyboards as kb
 from app.database import calculate, get_user
 from app.generators import gen_image, gen_vision_image
+from app.handlers.get_loggers import get_logger
 from app.handlers.utils import image_download, thinking_action
 from app.states import Image
 
 images = Router()
 
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-logger.addHandler(logging.StreamHandler())
+logger = get_logger(__name__)
 
 
 @images.message(Command("image_gen"))

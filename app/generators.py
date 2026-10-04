@@ -1,6 +1,5 @@
 import base64
 import uuid
-import logging
 
 import aiofiles
 from aiogram.types import BufferedInputFile
@@ -10,13 +9,12 @@ from openai import (
     APITimeoutError,
     AsyncOpenAI,
 )
-from .texts import deep_prompt
 
+from app.handlers.get_loggers import get_logger
+from app.texts import deep_prompt
 from config import AI_TOKEN
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-logger.addHandler(logging.StreamHandler())
+logger = get_logger(__name__)
 
 
 client = AsyncOpenAI(
@@ -107,8 +105,7 @@ async def gen_image(
 
     logger.debug(str(image_urls))
 
-    for image in image_urls:
-        byte_image_url = base64.b64decode(image.b64_json)
+    byte_image_url = image_urls[0]
 
     return {
         "image": BufferedInputFile(byte_image_url, filename="image.jpeg"),

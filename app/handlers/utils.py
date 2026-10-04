@@ -1,14 +1,12 @@
 import asyncio
-import logging
 import uuid
 
 from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
-from aiogram.types import Message
+from aiogram.types import InputRichMessage, Message
 
+from app.handlers.get_loggers import get_logger
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-logger.addHandler(logging.StreamHandler())
+logger = get_logger(__name__)
 
 
 async def image_download(message: Message):
@@ -33,12 +31,14 @@ async def message_splitting(
     for chunk in chunks:
         full_text += str(chunk)
         try:
-            await message.bot.send_message_draft(
+            await message.bot.send_rich_message_draft(
                 chat_id=message.chat.id,
                 draft_id=message.message_id,
-                text=full_text,
+                rich_message=InputRichMessage(
+                    markdown=full_text,
+                    skip_entity_detection=False,
+                ),
                 message_thread_id=message.message_thread_id,
-                parse_mode="markdown",
             )
             await asyncio.sleep(0.85)
         except TelegramRetryAfter as exc:
@@ -49,7 +49,9 @@ async def message_splitting(
         except Exception as exc:
             logger.error(f"Ошибка draft: {exc}")
 
-    await message.answer(full_text, parse_mode="markdown")
+    await message.answer_rich(
+        rich_message=InputRichMessage(markdown=full_text, skip_entity_detection=False)
+    )
 
 
 async def thinking_action(message: Message):

@@ -1,4 +1,3 @@
-import logging
 import os
 from decimal import Decimal
 
@@ -12,12 +11,11 @@ from aiogram.utils.chat_action import ChatActionSender
 import app.keyboards as kb
 from app.database import calculate, get_user
 from app.generators import gen_text, gen_vision
+from app.handlers.get_loggers import get_logger
 from app.handlers.utils import image_download, message_splitting, thinking_action
 from app.states import Chat
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-logger.addHandler(logging.StreamHandler())
+logger = get_logger(__name__)
 
 texts = Router()
 
@@ -44,8 +42,8 @@ async def chat_response_vision(message: Message, state: FSMContext):
     if Decimal(user.balance) > 0:
         vision_ai_model = "deepseek/deepseek-v4.1-flash"
         logger.debug(
-                f"Запрос от {message.from_user.username} (ID: {message.from_user.id}): {message.text}. Модель: {vision_ai_model}"
-            )
+            f"Запрос от {message.from_user.username} (ID: {message.from_user.id}): {message.text}. Модель: {vision_ai_model}"
+        )
         await state.set_state(Chat.wait)
         async with ChatActionSender(
             bot=message.bot,
