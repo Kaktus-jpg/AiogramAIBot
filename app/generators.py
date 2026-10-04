@@ -1,5 +1,4 @@
 import base64
-import uuid
 
 import aiofiles
 from aiogram.types import BufferedInputFile
@@ -63,10 +62,10 @@ async def gen_text(req, model="deepseek/deepseek-v4-flash"):
         final_model = None
 
     else:
-        file_name = uuid.uuid4()
+        # file_name = uuid.uuid4()
 
-        async with aiofiles.open(f"{file_name}.md", "w") as res:
-            await res.write(str(completion.choices[0].message.content))
+        # async with aiofiles.open(f"{file_name}.md", "w") as res:
+        #     await res.write(str(completion.choices[0].message.content))
 
         response = completion.choices[0].message.content
         usage = completion.usage.total_tokens
@@ -112,15 +111,15 @@ async def gen_image(
 
     image_urls = []
 
+    # file_name = uuid.uuid4()
+
     # Изображения возвращаются в base64 (data[].b64_json)
-    for i, image in enumerate(response.data):
+    for image in response.data:
         image_url = base64.b64decode(image.b64_json)
         image_urls.append(image_url)
-        with open(f"generated_image_{i}.png", "wb") as photo:
-            photo.write(image_url)
-        logger.debug(f"Image saved to generated_image_{i}.png")
-
-    logger.debug(str(image_urls))
+        # with open(f"image_{file_name}.png", "wb") as photo:
+        #     photo.write(image_url)
+        # logger.debug(f"Image saved to image_{file_name}.png")
 
     byte_image_url = image_urls[0]
 
