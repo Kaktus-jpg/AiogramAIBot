@@ -5,14 +5,14 @@ from aiogram.types import Message
 
 from app.database import get_users
 from app.states import NewsLetter
-from config import TG_ADMINS_IDS
+from config import ADMIN_IDS
 
 admin = Router()
 
 
 class Admin(Filter):
     async def __call__(self, message: Message):
-        return message.from_user.id in TG_ADMINS_IDS
+        return message.from_user.id in ADMIN_IDS
 
 
 @admin.message(Admin(), Command("newsletter"))

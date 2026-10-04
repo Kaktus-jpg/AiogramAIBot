@@ -3,7 +3,7 @@ name = "aiogrambotai"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
-    "aiogram>=3.28.2",
+    "aiogram>=3.30.0",
     "aiosqlite>=0.22.1",
     "asyncpg>=0.31.0",
     "black>=26.5.0",

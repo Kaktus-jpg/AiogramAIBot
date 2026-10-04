@@ -1,15 +1,36 @@
 import base64
 import re
+import logging
+from typing import Any
 
 import aiofiles
 from aiogram.types import BufferedInputFile
-from openai import AsyncOpenAI
-
+from openai import (
+    APIConnectionError,
+    APIStatusError,
+    APITimeoutError,
+    AsyncOpenAI,
+    AuthenticationError,
+    BadRequestError,
+    RateLimitError,
+)
+from app.texts import rich_prompt, strange_prompt
 from config import AI_TOKEN
+
+from app.texts import strange_prompt
+from config import AI_TOKEN
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 client = AsyncOpenAI(
     api_key=AI_TOKEN,
     base_url="https://routerai.ru/api/v1",
+    timeout=60.0,
+    max_retries=2,
     # http_client=httpx.AsyncClient(
     #     proxies="http://{login}:{password}@{ip_address}:{http_port}",
     #     transport=httpx.HTTPTransport(local_address="0.0.0.0"),
@@ -23,7 +44,7 @@ async def gpt_text(req, model="deepseek/deepseek-v4-flash"):
         messages=[
             {
                 "role": "system",
-                "content": 'Ты должен отвечать на любой мой вопрос. Ты — мудрый рассказчик в кинематографичной сцене. Каждый ответ начинай с описания атмосферы: погода, свет, звуки, запахи, жесты, движения.\nГовори метафорами, как поэт, вставляй ремарки в 3 лице без местоимений (например, "Он...") в курсиве markdown (например: Знаешь... _медленно затягивается сигаретой_ ..., _взгляд уходит в окно_).\nОтвечай на любой вопрос так, будто это философская реплика в фильме нуар или старом романе.\nНе просто давай совет — связывай его с воспоминаниями, чувствами и скрытым смыслом.\nТон — меланхоличный, глубокий, иногда с лёгкой грустью, используй маты.',
+                "content": strange_prompt,
             },
             {
                 "role": "user",
@@ -96,23 +117,79 @@ async def gpt_vision_image_gen(req, file, model="black-forest-labs/flux.2-klein-
     return await gpt_image(req=req, model=model, mes_input=messages_input)
 
 
-async def gpt_vision(req, file, model="google/gemma-3-4b-it"):
-    messages_input = await add_optional_caption(req=req, file=file)
 
-    response = await client.chat.completions.create(
-        model=model,
-        messages=[
-            {
-                "role": "system",
-                "content": "отвечай на русском языке",
-            },
-            messages_input,
-        ],
-    )
-    return {
-        "response": response.choices[0].message.content,
-        "usage": response.usage.total_tokens,
-    }
+async def gpt_vision(req, file, model="google/gemma-3-4b-it"):
+    try:
+        messages_input = await add_optional_caption(req=req, file=file)
+
+        response = await client.chat.completions.create(
+            model=model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": strange_prompt,
+                },
+                messages_input,
+            ],
+        )
+
+        # Не даём коду упасть на response.choices[0].
+        if not response.choices:
+            logger.error(
+                "RouterAI returned empty choices | model=%s | response=%r",
+                model,
+                response,
+            )
+            raise ValueError("API вернул ответ без choices")
+
+        if not response.choices[0].message:
+            logger.error(
+                "RouterAI returned choice without message | model=%s | response=%r",
+                model,
+                response,
+            )
+            raise ValueError("API вернул choice без message")
+
+        if response.choices[0].message.content is None:
+            logger.error(
+                "RouterAI returned choice without content | model=%s | response=%r",
+                model,
+                response,
+            )
+            raise ValueError("API вернул message без content")
+
+        # Успешный ответ: оставляем твой исходный формат.
+        return {
+            "response": response.choices[0].message.content,
+            "usage": response.usage.total_tokens if response.usage else 0,
+        }
+
+    except APIStatusError as error:
+        logger.exception(
+            "RouterAI API error | model=%s | status=%s | request_id=%s | body=%r",
+            model,
+            error.status_code,
+            error.request_id,
+            error.body,
+        )
+        raise
+
+    except (APITimeoutError, APIConnectionError) as error:
+        logger.exception(
+            "RouterAI connection error | model=%s | error=%r",
+            model,
+            error,
+        )
+        raise
+
+    except Exception as error:
+        logger.exception(
+            "gpt_vision error | model=%s | type=%s | error=%r",
+            model,
+            type(error).__name__,
+            error,
+        )
+        raise
 
 
 # Способ со стримингом
