@@ -49,7 +49,7 @@ async def gen_text(req, model="deepseek/deepseek-v4-flash"):
     logger.debug(str(completion))
 
     file_name = uuid.uuid4()
-    
+
     async with aiofiles.open(f"{file_name}.md", "w") as res:
         await res.write(str(completion.choices[0].message.content))
 
@@ -104,10 +104,9 @@ async def gen_image(
         with open(f"generated_image_{i}.png", "wb") as photo:
             photo.write(image_url)
         logger.debug(f"Image saved to generated_image_{i}.png")
-        
-        
+
     logger.debug(str(image_urls))
-    
+
     for image in image_urls:
         byte_image_url = base64.b64decode(image.b64_json)
 
@@ -123,7 +122,7 @@ async def encode_image(image_path):
         return base64.b64encode(await image_file.read()).decode("utf-8")
 
 
-async def add_optional_caption(file):
+async def get_image_url(file):
     base64_image = await encode_image(file)
     image_url = {
         "type": "image_url",
@@ -136,13 +135,13 @@ async def add_optional_caption(file):
 
 
 async def gen_vision_image(req, file, model="bytedance-seed/seedream-5-0-flash"):
-    reference = await add_optional_caption(file=file)
+    reference = await get_image_url(file=file)
     return await gen_image(req=req, model=model, reference=reference)
 
 
 async def gen_vision(req, file, model="deepseek/deepseek-v4.1-flash"):
     try:
-        messages_input = await add_optional_caption(req=req, file=file)
+        image = await get_image_url(file=file)
 
         response = await client.chat.completions.create(
             model=model,
@@ -151,7 +150,7 @@ async def gen_vision(req, file, model="deepseek/deepseek-v4.1-flash"):
                     "role": "system",
                     "content": deep_prompt,
                 },
-                messages_input,
+                {"role": "user", "content": [image]},
             ],
         )
 
@@ -208,7 +207,7 @@ async def gen_vision(req, file, model="deepseek/deepseek-v4.1-flash"):
         logger.exception(
             "gpt_vision error | model=%s | type=%s | error=%r",
             model,
-            type(error).name,
+            type(error),
             error,
         )
         raise
