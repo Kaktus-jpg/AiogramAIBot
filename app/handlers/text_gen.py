@@ -42,7 +42,7 @@ async def chat_response_vision(message: Message, state: FSMContext):
     if Decimal(user.balance) > 0:
         vision_ai_model = "deepseek/deepseek-v4.1-flash"
         logger.debug(
-            f"Запрос от {message.from_user.username} (ID: {message.from_user.id}): {message.text}. Модель: {vision_ai_model}"
+            f"Запрос от {message.from_user.username} (ID: {message.from_user.id}): {message.caption}. Модель: {vision_ai_model}"
         )
         await state.set_state(Chat.wait)
         async with ChatActionSender(
