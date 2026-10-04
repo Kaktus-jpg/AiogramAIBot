@@ -11,7 +11,7 @@ from aiogram.utils.chat_action import ChatActionSender
 
 import app.keyboards as kb
 from app.database import calculate, get_user
-from app.generators import gen_text, gen_vision
+from app.generators import gpt_text, gpt_vision
 from app.handlers.utils import image_download, message_splitting, thinking_action
 from app.states import Chat
 
@@ -40,10 +40,10 @@ async def chatting(message: Message, state: FSMContext):
 
 
 @texts.message(Chat.text, F.photo)
-async def chat_response_vision(message: Message, state: FSMContext):
+async def chat_response(message: Message, state: FSMContext):
     user = await get_user(message.from_user.id)
     if Decimal(user.balance) > 0:
-        vision_ai_model = "deepseek/deepseek-v4.1-flash"
+        vision_ai_model = "google/gemma-3-4b-it"
 
         await state.set_state(Chat.wait)
         async with ChatActionSender(
@@ -55,7 +55,7 @@ async def chat_response_vision(message: Message, state: FSMContext):
             await thinking_action(message=message)
             ###
             file_name = await image_download(message=message)
-            response = await gen_vision(
+            response = await gpt_vision(
                 message.caption, f"{file_name}.jpeg", vision_ai_model
             )
             await calculate(
@@ -83,7 +83,7 @@ async def chat_response(message: Message, state: FSMContext):
     user = await get_user(message.from_user.id)
     if Decimal(user.balance) > 0:
         if message.text:
-            text_ai_model = "inclusionai/ling-3.1-flash"
+            text_ai_model = "deepseek/deepseek-v4-flash"
 
             await state.set_state(Chat.wait)
             async with ChatActionSender(
@@ -97,7 +97,7 @@ async def chat_response(message: Message, state: FSMContext):
                 logger.info(
                     f"Запрос от {message.from_user.username} (ID: {message.from_user.id}): {message.text}"
                 )
-                response = await gen_text(message.text, text_ai_model)
+                response = await gpt_text(message.text, text_ai_model)
                 await calculate(
                     response["usage"],
                     text_ai_model,
