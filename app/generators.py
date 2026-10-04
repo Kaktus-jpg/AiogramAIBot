@@ -28,32 +28,49 @@ client = AsyncOpenAI(
 
 
 async def gen_text(req, model="deepseek/deepseek-v4-flash"):
-    completion = await client.chat.completions.create(
-        model=model,
-        messages=[
-            {
-                "role": "system",
-                "content": deep_prompt,  # base_prompt
-            },
-            {
-                "role": "user",
-                "content": req,
-            },
-        ],
-        # verbosity="low",
-        # temperature=0,
-    )
 
-    logger.debug(str(completion))
+    async def send_completion(router_model: str):
+        return await client.chat.completions.create(
+            model=router_model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": deep_prompt,  # base_prompt
+                },
+                {
+                    "role": "user",
+                    "content": req,
+                },
+            ],
+            # verbosity="low",
+            # temperature=0,
+        )
+
+    completion = await send_completion(router_model=model)
+
+    if getattr(completion, "error", None):
+        logger.error(str(completion.error))
+        completion = await send_completion(router_model="deepseek/deepseek-v4-flash")
+
+    if getattr(completion, "error", None):
+        logger.critical(str(completion.error))
+
+        return {
+            "response": "Извините, произошла ошибка. Попробуйте позже",
+            "usage": 0,
+        }
 
     file_name = uuid.uuid4()
 
     async with aiofiles.open(f"{file_name}.md", "w") as res:
         await res.write(str(completion.choices[0].message.content))
 
+    response = completion.choices[0].message.content
+    usage = completion.usage.total_tokens
+
     return {
-        "response": completion.choices[0].message.content,
-        "usage": completion.usage.total_tokens,
+        "response": response,
+        "usage": usage,
     }
 
 
