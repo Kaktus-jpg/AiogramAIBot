@@ -11,7 +11,7 @@ from aiogram.utils.chat_action import ChatActionSender
 
 import app.keyboards as kb
 from app.database import calculate, get_user
-from app.generators import gpt_image, gpt_vision_image_gen
+from app.generators import gen_image, gen_vision_image
 from app.handlers.utils import image_download, thinking_action
 from app.states import Image
 
@@ -42,11 +42,11 @@ async def chatting(message: Message, state: FSMContext):
 
 
 @images.message(Image.text, F.photo)
-async def chat_response(message: Message, state: FSMContext):
+async def chat_image_response(message: Message, state: FSMContext):
     user = await get_user(message.from_user.id)
     if Decimal(user.balance) > 0:
         if message.caption:
-            image_gen_ai_model = "black-forest-labs/flux.2-klein-4b"
+            image_gen_ai_model = "bytedance-seed/seedream-5-0-flash"
 
             logger.info(
                 f"Запрос от {message.from_user.username} (ID: {message.from_user.id}): {message.text}"
@@ -66,7 +66,7 @@ async def chat_response(message: Message, state: FSMContext):
                 action=ChatAction.UPLOAD_PHOTO,
             ):
                 file_name = await image_download(message=message)
-                response = await gpt_vision_image_gen(
+                response = await gen_vision_image(
                     req=message.caption,
                     file=f"{file_name}.jpeg",
                     model=image_gen_ai_model,
@@ -93,7 +93,7 @@ async def chat_response(message: Message, state: FSMContext):
     user = await get_user(message.from_user.id)
     if Decimal(user.balance) > 0:
         if message.text:
-            image_gen_ai_model = "black-forest-labs/flux.2-klein-4b"
+            image_gen_ai_model = "recraft/recraft-v4.1-flash"
 
             logger.info(
                 f"Запрос от {message.from_user.username} (ID: {message.from_user.id}): {message.text}"
@@ -112,7 +112,7 @@ async def chat_response(message: Message, state: FSMContext):
                 message_thread_id=message.message_thread_id,
                 action=ChatAction.UPLOAD_PHOTO,
             ):
-                response = await gpt_image(message.text, image_gen_ai_model)
+                response = await gen_image(message.text, image_gen_ai_model)
                 await calculate(
                     response["usage"],
                     image_gen_ai_model,
