@@ -29,6 +29,8 @@ client = AsyncOpenAI(
 
 async def gen_text(req, model="deepseek/deepseek-v4-flash"):
 
+    final_model = model
+
     async def send_completion(router_model: str):
         return await client.chat.completions.create(
             model=router_model,
@@ -50,28 +52,26 @@ async def gen_text(req, model="deepseek/deepseek-v4-flash"):
 
     if getattr(completion, "error", None):
         logger.error(str(completion.error))
+        final_model = "deepseek/deepseek-v4-flash"
         completion = await send_completion(router_model="deepseek/deepseek-v4-flash")
 
     if getattr(completion, "error", None):
         logger.critical(str(completion.error))
 
-        return {
-            "response": "Извините, произошла ошибка. Попробуйте позже",
-            "usage": 0,
-        }
+        response = "Извините, произошла ошибка. Попробуйте позже"
+        usage = 0
+        final_model = None
 
-    file_name = uuid.uuid4()
+    else:
+        file_name = uuid.uuid4()
 
-    async with aiofiles.open(f"{file_name}.md", "w") as res:
-        await res.write(str(completion.choices[0].message.content))
+        async with aiofiles.open(f"{file_name}.md", "w") as res:
+            await res.write(str(completion.choices[0].message.content))
 
-    response = completion.choices[0].message.content
-    usage = completion.usage.total_tokens
+        response = completion.choices[0].message.content
+        usage = completion.usage.total_tokens
 
-    return {
-        "response": response,
-        "usage": usage,
-    }
+    return {"response": response, "usage": usage, "model": final_model}
 
 
 async def gen_image(

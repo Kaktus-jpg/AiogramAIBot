@@ -12,7 +12,7 @@ import app.keyboards as kb
 from app.database import calculate, get_user
 from app.generators import gen_text, gen_vision
 from app.get_loggers import get_logger
-from app.handlers.utils import image_download, message_splitting, thinking_action
+from app.handlers.utils import image_download, send_message_splitting, thinking_action
 from app.states import Chat
 
 logger = get_logger(__name__)
@@ -63,7 +63,7 @@ async def chat_response_vision(message: Message, state: FSMContext):
                 user,
             )
             try:
-                await message_splitting(
+                await send_message_splitting(
                     message_text=response["response"], message=message
                 )
             finally:
@@ -97,13 +97,14 @@ async def chat_response(message: Message, state: FSMContext):
                 ###
 
                 response = await gen_text(message.text, text_ai_model)
-                await calculate(
-                    response["usage"],
-                    text_ai_model,
-                    user,
-                )
+                if response["model"] is not None:
+                    await calculate(
+                        response["usage"],
+                        text_ai_model,
+                        user,
+                    )
                 try:
-                    await message_splitting(
+                    await send_message_splitting(
                         message_text=response["response"], message=message
                     )
                 finally:

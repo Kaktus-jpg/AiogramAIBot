@@ -20,9 +20,11 @@ async def image_download(message: Message):
     return file_name
 
 
-async def message_splitting(
+async def send_message_splitting(
     message_text: str, message: Message, chunk_length: int = 80
 ):
+    draft_failed = False
+
     chunks = [
         message_text[i : i + chunk_length]
         for i in range(0, len(message_text), chunk_length)
@@ -40,17 +42,38 @@ async def message_splitting(
                 ),
                 message_thread_id=message.message_thread_id,
             )
-            await asyncio.sleep(0.85)
-        except TelegramRetryAfter as exc:
-            logger.warning(f"Rate limit, ждём {exc.retry_after} сек")
-            await asyncio.sleep(exc.retry_after)
         except TelegramBadRequest as exc:
-            logger.error(exc)
+            logger.warning(
+                "Черновик отклонён на длине %s: %s",
+                len(full_text),
+                exc.message,
+            )
+            draft_failed = True
+            break  # Не отправляем остальные ошибочные промежуточные варианты
+        except TelegramRetryAfter as exc:
+            logger.warning("Лимит Telegram: %s сек.", exc.retry_after)
+            draft_failed = True
+            await asyncio.sleep(exc.retry_after)
         except Exception as exc:
             logger.error(f"Ошибка draft: {exc}")
+        else:
+            await asyncio.sleep(0.85)
+
+    if draft_failed:
+        # Используем весь исходный ответ, а не full_text:
+        # цикл мог остановиться посередине сообщения.
+        for i in range(0, len(message_text), 4000):
+            await message.answer(
+                message_text[i : i + 4000],
+                parse_mode=None,
+            )
+        return
 
     await message.answer_rich(
-        rich_message=InputRichMessage(markdown=full_text, skip_entity_detection=False)
+        rich_message=InputRichMessage(
+            markdown=message_text,
+            skip_entity_detection=False,
+        )
     )
 
 
