@@ -100,7 +100,7 @@ async def chat_response(message: Message, state: FSMContext):
                 if response["model"] is not None:
                     await calculate(
                         response["usage"],
-                        text_ai_model,
+                        response["model"],
                         user,
                     )
                 try:
