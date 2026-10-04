@@ -30,7 +30,10 @@ async def send_message_splitting(
         for i in range(0, len(message_text), chunk_length)
     ]
     full_text = ""
-    for chunk in chunks:
+
+    iterator = iter(chunks)
+
+    for chunk in iterator:
         full_text += str(chunk)
         try:
             await message.bot.send_rich_message_draft(
@@ -62,9 +65,7 @@ async def send_message_splitting(
         # Используем весь исходный ответ, а не full_text:
         # цикл мог остановиться посередине сообщения.
 
-        full_text = ""
-
-        for chunk in chunks:
+        for chunk in iterator:
             full_text += str(chunk)
             try:
                 await message.bot.send_message_draft(
