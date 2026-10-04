@@ -47,7 +47,7 @@ async def chat_image_response(message: Message, state: FSMContext):
             image_gen_ai_model = "bytedance-seed/seedream-5-0-flash"
 
             logger.debug(
-                f"Запрос от {message.from_user.username} (ID: {message.from_user.id}): {message.text}. Модель: {image_gen_ai_model}"
+                f"Запрос от {message.from_user.username} (ID: {message.from_user.id}): {message.caption}. Модель: {image_gen_ai_model}"
             )
             await state.set_state(Image.wait)
             async with ChatActionSender(
@@ -94,7 +94,7 @@ async def chat_response(message: Message, state: FSMContext):
             image_gen_ai_model = "recraft/recraft-v4.1-flash"
 
             logger.debug(
-                f"Запрос от {message.from_user.username} (ID: {message.from_user.id}): {message.text}. Модель: {image_gen_ai_model}"
+                f"Запрос от {message.from_user.username} (ID: {message.from_user.id}): {message.caption}. Модель: {image_gen_ai_model}"
             )
             await state.set_state(Image.wait)
             async with ChatActionSender(
