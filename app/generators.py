@@ -1,7 +1,6 @@
 import base64
-import re
+import uuid
 import logging
-from typing import Any
 
 import aiofiles
 from aiogram.types import BufferedInputFile
@@ -10,27 +9,19 @@ from openai import (
     APIStatusError,
     APITimeoutError,
     AsyncOpenAI,
-    AuthenticationError,
-    BadRequestError,
-    RateLimitError,
 )
-from app.texts import rich_prompt, strange_prompt
+from .texts import deep_prompt
+
 from config import AI_TOKEN
 
-from app.texts import strange_prompt
-from config import AI_TOKEN
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.addHandler(logging.StreamHandler())
+
 
 client = AsyncOpenAI(
     api_key=AI_TOKEN,
     base_url="https://routerai.ru/api/v1",
-    timeout=60.0,
-    max_retries=2,
     # http_client=httpx.AsyncClient(
     #     proxies="http://{login}:{password}@{ip_address}:{http_port}",
     #     transport=httpx.HTTPTransport(local_address="0.0.0.0"),
@@ -38,27 +29,29 @@ client = AsyncOpenAI(
 )
 
 
-async def gpt_text(req, model="deepseek/deepseek-v4-flash"):
+async def gen_text(req, model="deepseek/deepseek-v4-flash"):
     completion = await client.chat.completions.create(
         model=model,
         messages=[
             {
                 "role": "system",
-                "content": strange_prompt,
+                "content": deep_prompt,  # base_prompt
             },
             {
                 "role": "user",
                 "content": req,
             },
         ],
-        # max_tokens=1000,
         # verbosity="low",
         # temperature=0,
     )
 
-    # async with aiofiles.open("answer.txt", "a") as res:
-    #     await res.write(str(completion))
-    #     await res.write(str(completion.choices[0].message.content))
+    logger.debug(str(completion))
+
+    file_name = uuid.uuid4()
+    
+    async with aiofiles.open(f"{file_name}.md", "w") as res:
+        await res.write(str(completion.choices[0].message.content))
 
     return {
         "response": completion.choices[0].message.content,
@@ -66,22 +59,57 @@ async def gpt_text(req, model="deepseek/deepseek-v4-flash"):
     }
 
 
-async def gpt_image(
-    req, model="black-forest-labs/flux.2-klein-4b", mes_input: list = None
+async def gen_image(
+    req,
+    model="recraft/recraft-v4.1-flash",
+    reference: dict[str, str | dict[str, str]] | None = None,
 ):
-    response = await client.chat.completions.create(
-        model=model,
-        messages=[mes_input or {"role": "user", "content": req}],
-        modalities=["image"],
-        max_tokens=500,
-    )
-    raw_image_url = str(response.choices[0].message.images[0]["image_url"]["url"])
+    # response = await client.chat.completions.create(
+    #     model=model,
+    #     messages=[mes_input or {"role": "user", "content": req}],
+    #     modalities=["image"],
+    #     max_tokens=500,
+    # )
+    # raw_image_url = str(response.choices[0].message.images[0]["image_url"]["url"])
+    #
+    # byte_image_url = base64.b64decode(
+    #     raw_image_url.removeprefix(
+    #         re.search(r"data:image/\w{1,6};base64,", raw_image_url).group(0)
+    #     )
+    # )
+    #
+    # return {
+    #     "image": BufferedInputFile(byte_image_url, filename="image.jpeg"),
+    #     "usage": response.usage.total_tokens,
+    # }
 
-    byte_image_url = base64.b64decode(
-        raw_image_url.removeprefix(
-            re.search(r"data:image/\w{1,6};base64,", raw_image_url).group(0)
-        )
+    extra_body = {"aspect_ratio": "1:1", "seed": 42}
+
+    if reference:
+        extra_body["input_references"] = [reference]
+
+    response = await client.images.generate(
+        model=model,
+        prompt=req,
+        n=1,
+        extra_body=extra_body,
     )
+
+    image_urls = []
+
+    # Изображения возвращаются в base64 (data[].b64_json)
+    for i, image in enumerate(response.data):
+        image_url = base64.b64decode(image.b64_json)
+        image_urls.append(image_url)
+        with open(f"generated_image_{i}.png", "wb") as photo:
+            photo.write(image_url)
+        logger.debug(f"Image saved to generated_image_{i}.png")
+        
+        
+    logger.debug(str(image_urls))
+    
+    for image in image_urls:
+        byte_image_url = base64.b64decode(image.b64_json)
 
     return {
         "image": BufferedInputFile(byte_image_url, filename="image.jpeg"),
@@ -95,30 +123,24 @@ async def encode_image(image_path):
         return base64.b64encode(await image_file.read()).decode("utf-8")
 
 
-async def add_optional_caption(req, file):
+async def add_optional_caption(file):
     base64_image = await encode_image(file)
-    messages_input = {
-        "role": "user",
-        "content": [
-            {
-                "type": "image_url",
-                "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
-            },
-        ],
+    image_url = {
+        "type": "image_url",
+        "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
     }
 
-    if req is not None:
-        messages_input["content"].append({"type": "text", "text": req})
-    return messages_input
+    # if req is not None:
+    #     messages_input["content"].append({"type": "text", "text": req})
+    return image_url
 
 
-async def gpt_vision_image_gen(req, file, model="black-forest-labs/flux.2-klein-4b"):
-    messages_input = await add_optional_caption(req=req, file=file)
-    return await gpt_image(req=req, model=model, mes_input=messages_input)
+async def gen_vision_image(req, file, model="bytedance-seed/seedream-5-0-flash"):
+    reference = await add_optional_caption(file=file)
+    return await gen_image(req=req, model=model, reference=reference)
 
 
-
-async def gpt_vision(req, file, model="google/gemma-3-4b-it"):
+async def gen_vision(req, file, model="deepseek/deepseek-v4.1-flash"):
     try:
         messages_input = await add_optional_caption(req=req, file=file)
 
@@ -127,7 +149,7 @@ async def gpt_vision(req, file, model="google/gemma-3-4b-it"):
             messages=[
                 {
                     "role": "system",
-                    "content": strange_prompt,
+                    "content": deep_prompt,
                 },
                 messages_input,
             ],
@@ -186,7 +208,7 @@ async def gpt_vision(req, file, model="google/gemma-3-4b-it"):
         logger.exception(
             "gpt_vision error | model=%s | type=%s | error=%r",
             model,
-            type(error).__name__,
+            type(error).name,
             error,
         )
         raise

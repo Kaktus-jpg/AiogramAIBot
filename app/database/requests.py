@@ -6,10 +6,10 @@ from sqlalchemy import select, update
 
 from app.database import AiModel, User, async_session
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
-)
+
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler())
 
 
 def connection(func: Callable) -> Callable:
